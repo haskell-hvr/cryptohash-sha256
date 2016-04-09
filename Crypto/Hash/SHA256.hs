@@ -29,10 +29,11 @@ module Crypto.Hash.SHA256
     -- > import qualified Data.ByteString
     -- > import qualified Crypto.Hash.SHA256 as SHA256
     -- >
-    -- > main = print $ digest
-    -- >   where digest = SHA256.finalize ctx
-    -- >         ctx    = foldl' SHA256.update iCtx (map Data.ByteString.pack [ [1,2,3], [4,5,6] ]
-    -- >         iCtx   = SHA256.init
+    -- > main = print digest
+    -- >   where
+    -- >     digest = SHA256.finalize ctx
+    -- >     ctx    = foldl SHA256.update ctx0 (map Data.ByteString.pack [ [1,2,3], [4,5,6] ])
+    -- >     ctx0   = SHA256.init
 
       Ctx(..)
     , init     -- :: Ctx
