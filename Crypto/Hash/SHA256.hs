@@ -56,6 +56,11 @@ module Crypto.Hash.SHA256
     -- > import qualified Crypto.Hash.SHA256 as SHA256
     -- >
     -- > main = print $ SHA256.hash (Data.ByteString.pack [0..255])
+    --
+    -- __NOTE__: The returned digest is a binary 'ByteString'. For
+    -- converting to a base16/hex encoded digest the
+    -- <https://hackage.haskell.org/package/base16-bytestring base16-bytestring>
+    -- package is recommended.
 
     , hash     -- :: ByteString -> ByteString
     , hashlazy -- :: ByteString -> ByteString
