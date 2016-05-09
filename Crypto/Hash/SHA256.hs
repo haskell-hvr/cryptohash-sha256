@@ -139,7 +139,16 @@ foreign import ccall unsafe "sha256.h hs_cryptohash_sha256_init"
     c_sha256_init :: Ptr Ctx -> IO ()
 
 foreign import ccall unsafe "sha256.h hs_cryptohash_sha256_update"
-    c_sha256_update :: Ptr Ctx -> Ptr Word8 -> Word32 -> IO ()
+    c_sha256_update_unsafe :: Ptr Ctx -> Ptr Word8 -> Word32 -> IO ()
+
+foreign import ccall safe "sha256.h hs_cryptohash_sha256_update"
+    c_sha256_update_safe :: Ptr Ctx -> Ptr Word8 -> Word32 -> IO ()
+
+-- 'safe' call overhead neglible for 4KiB and more
+c_sha256_update :: Ptr Ctx -> Ptr Word8 -> Word32 -> IO ()
+c_sha256_update pctx pbuf sz
+  | sz < 4096 = c_sha256_update_unsafe pctx pbuf sz
+  | otherwise = c_sha256_update_safe   pctx pbuf sz
 
 foreign import ccall unsafe "sha256.h hs_cryptohash_sha256_finalize"
     c_sha256_finalize :: Ptr Ctx -> Ptr Word8 -> IO ()
