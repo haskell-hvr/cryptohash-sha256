@@ -88,6 +88,19 @@ unsafeDoIO :: IO a -> a
 unsafeDoIO = unsafeDupablePerformIO
 
 -- | SHA-256 Context
+--
+-- The context data is exactly 104 bytes long, however
+-- the data in the context is stored in host-endianness.
+--
+-- The context data is made up of
+--
+--  * 'Word64' count of bytes feed to hash algorithm so far,
+--
+--  * a 64-element 'Word8' buffer holding partial input-chunks, and finally
+--
+--  * a 8-element 'Word32' array holding the current
+--    work-in-progress digest-value
+--
 newtype Ctx = Ctx ByteString
 
 -- keep this synchronised with cbits/sha256.h
@@ -97,7 +110,7 @@ digestSize = 32
 
 {-# INLINE sizeCtx #-}
 sizeCtx :: Int
-sizeCtx = 168
+sizeCtx = 104
 
 {-# RULES "digestSize" B.length (finalize init) = digestSize #-}
 {-# RULES "hash" forall b. finalize (update init b) = hash b #-}

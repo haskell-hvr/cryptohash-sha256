@@ -1,5 +1,5 @@
 name:                cryptohash-sha256
-version:             0.11.7.1
+version:             0.11.7.2
 description:
     A practical incremental and one-pass, pure API to the
     <https://en.wikipedia.org/wiki/SHA-2 SHA-256 hash algorithm>
@@ -32,6 +32,7 @@ tested-with:         GHC == 7.4.2
                    , GHC == 8.0.1
 
 extra-source-files:  cbits/sha256.h
+                     changelog.md
 
 source-repository head
   type:     git
@@ -65,7 +66,7 @@ test-suite test-sha256
                    , tasty-quickcheck  == 0.8.*
                    , tasty-hunit       == 0.9.*
 
-benchmark bench-hashes
+benchmark bench-sha256
   default-language:  Haskell2010
   type:              exitcode-stdio-1.0
   main-is:           bench-sha256.hs
