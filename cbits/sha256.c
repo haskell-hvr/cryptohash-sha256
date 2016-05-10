@@ -100,12 +100,12 @@ sha256_do_chunk(struct sha256_ctx *ctx, uint32_t buf[])
 }
 
 void
-hs_cryptohash_sha256_update (struct sha256_ctx *ctx, const uint8_t *data, uint32_t len)
+hs_cryptohash_sha256_update (struct sha256_ctx *ctx, const uint8_t *data, size_t len)
 {
-	uint32_t index, to_fill;
+	size_t index, to_fill;
 
 	/* check for partial buffer */
-	index = (uint32_t) (ctx->sz & 0x3f);
+	index = (size_t) (ctx->sz & 0x3f);
 	to_fill = 64 - index;
 
 	ctx->sz += len;

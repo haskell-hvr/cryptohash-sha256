@@ -67,6 +67,7 @@ module Crypto.Hash.SHA256
     ) where
 
 import Prelude hiding (init)
+import Foreign.C.Types
 import Foreign.Ptr
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Storable
@@ -139,13 +140,13 @@ foreign import ccall unsafe "sha256.h hs_cryptohash_sha256_init"
     c_sha256_init :: Ptr Ctx -> IO ()
 
 foreign import ccall unsafe "sha256.h hs_cryptohash_sha256_update"
-    c_sha256_update_unsafe :: Ptr Ctx -> Ptr Word8 -> Word32 -> IO ()
+    c_sha256_update_unsafe :: Ptr Ctx -> Ptr Word8 -> CSize -> IO ()
 
 foreign import ccall safe "sha256.h hs_cryptohash_sha256_update"
-    c_sha256_update_safe :: Ptr Ctx -> Ptr Word8 -> Word32 -> IO ()
+    c_sha256_update_safe :: Ptr Ctx -> Ptr Word8 -> CSize -> IO ()
 
 -- 'safe' call overhead neglible for 4KiB and more
-c_sha256_update :: Ptr Ctx -> Ptr Word8 -> Word32 -> IO ()
+c_sha256_update :: Ptr Ctx -> Ptr Word8 -> CSize -> IO ()
 c_sha256_update pctx pbuf sz
   | sz < 4096 = c_sha256_update_unsafe pctx pbuf sz
   | otherwise = c_sha256_update_safe   pctx pbuf sz
