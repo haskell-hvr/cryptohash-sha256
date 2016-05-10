@@ -130,11 +130,14 @@ refImplTests =
         = ref_hashlazy bs == IUT.hashlazy bs
 
     ref_hash :: ByteString -> ByteString
-    ref_hash = BL.toStrict . REF.bytestringDigest . REF.sha256 . BL.fromStrict
+    ref_hash = toStrict . REF.bytestringDigest . REF.sha256 . fromStrict
 
     ref_hashlazy :: BL.ByteString -> ByteString
-    ref_hashlazy = BL.toStrict . REF.bytestringDigest . REF.sha256
+    ref_hashlazy = toStrict . REF.bytestringDigest . REF.sha256
 
+    -- toStrict/fromStrict only available with bytestring-0.10 and later
+    toStrict = B.concat . BL.toChunks
+    fromStrict = BL.fromChunks . (:[])
 
 main :: IO ()
 main = defaultMain $ testGroup "cryptohash-sha256"
