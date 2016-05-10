@@ -25,8 +25,16 @@
 
 #include "sha256.h"
 
+#include <assert.h>
 #include <string.h>
 #include <ghcautoconf.h>
+
+#if defined(static_assert)
+static_assert(sizeof(struct sha256_ctx) == SHA256_CTX_SIZE, "unexpected sha256_ctx size");
+#else
+// poor man's pre-C11 _Static_assert
+typedef char static_assertion__unexpected_sha256_ctx_size[(sizeof(struct sha256_ctx) == SHA256_CTX_SIZE)?1:-1];
+#endif
 
 static inline uint32_t
 ror32(uint32_t word, uint32_t shift)

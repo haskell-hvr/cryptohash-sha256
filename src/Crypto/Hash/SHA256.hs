@@ -70,13 +70,12 @@ import Prelude hiding (init)
 import Foreign.C.Types
 import Foreign.Ptr
 import Foreign.ForeignPtr (withForeignPtr)
-import Foreign.Storable
 import Foreign.Marshal.Alloc
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString as B
 import Data.ByteString (ByteString)
 import Data.ByteString.Unsafe (unsafeUseAsCStringLen)
-import Data.ByteString.Internal (create, toForeignPtr)
+import Data.ByteString.Internal (create, toForeignPtr, memcpy)
 import Data.Word
 import System.IO.Unsafe (unsafeDupablePerformIO)
 
@@ -91,13 +90,14 @@ unsafeDoIO = unsafeDupablePerformIO
 -- | SHA-256 Context
 newtype Ctx = Ctx ByteString
 
+-- keep this synchronised with cbits/sha256.h
 {-# INLINE digestSize #-}
 digestSize :: Int
 digestSize = 32
 
 {-# INLINE sizeCtx #-}
 sizeCtx :: Int
-sizeCtx = 192
+sizeCtx = 168
 
 {-# RULES "digestSize" B.length (finalize init) = digestSize #-}
 {-# RULES "hash" forall b. finalize (update init b) = hash b #-}
@@ -111,23 +111,22 @@ withByteStringPtr b f =
     withForeignPtr fptr $ \ptr -> f (ptr `plusPtr` off)
     where (fptr, off, _) = toForeignPtr b
 
-{-# INLINE memcopy64 #-}
-memcopy64 :: Ptr Word64 -> Ptr Word64 -> IO ()
-memcopy64 dst src = mapM_ peekAndPoke [0..(24-1)]
-    where peekAndPoke i = peekElemOff src i >>= pokeElemOff dst i
+copyCtx :: Ptr Ctx -> Ptr Ctx -> IO ()
+copyCtx dst src = memcpy (castPtr dst) (castPtr src) sizeCtx
 
 withCtxCopy :: Ctx -> (Ptr Ctx -> IO ()) -> IO Ctx
 withCtxCopy (Ctx ctxB) f = Ctx `fmap` createCtx
-    where createCtx = create sizeCtx $ \dstPtr ->
-                      withByteStringPtr ctxB $ \srcPtr -> do
-                          memcopy64 (castPtr dstPtr) (castPtr srcPtr)
-                          f (castPtr dstPtr)
+  where
+    createCtx = create sizeCtx $ \dstPtr ->
+                withByteStringPtr ctxB $ \srcPtr -> do
+                    copyCtx (castPtr dstPtr) (castPtr srcPtr)
+                    f (castPtr dstPtr)
 
 withCtxThrow :: Ctx -> (Ptr Ctx -> IO a) -> IO a
 withCtxThrow (Ctx ctxB) f =
     allocaBytes sizeCtx $ \dstPtr ->
     withByteStringPtr ctxB $ \srcPtr -> do
-        memcopy64 (castPtr dstPtr) (castPtr srcPtr)
+        copyCtx (castPtr dstPtr) (castPtr srcPtr)
         f (castPtr dstPtr)
 
 withCtxNew :: (Ptr Ctx -> IO ()) -> IO Ctx
@@ -166,20 +165,29 @@ finalizeInternalIO ptr = create digestSize (c_sha256_finalize ptr)
 init :: Ctx
 init = unsafeDoIO $ withCtxNew $ c_sha256_init
 
+validCtx :: Ctx -> Bool
+validCtx (Ctx b) = B.length b == sizeCtx
+
 {-# NOINLINE update #-}
 -- | update a context with a bytestring
 update :: Ctx -> ByteString -> Ctx
-update ctx d = unsafeDoIO $ withCtxCopy ctx $ \ptr -> updateInternalIO ptr d
+update ctx d
+  | validCtx ctx = unsafeDoIO $ withCtxCopy ctx $ \ptr -> updateInternalIO ptr d
+  | otherwise    = error "SHA256.update: invalid Ctx"
 
 {-# NOINLINE updates #-}
 -- | updates a context with multiples bytestring
 updates :: Ctx -> [ByteString] -> Ctx
-updates ctx d = unsafeDoIO $ withCtxCopy ctx $ \ptr -> mapM_ (updateInternalIO ptr) d
+updates ctx d
+  | validCtx ctx = unsafeDoIO $ withCtxCopy ctx $ \ptr -> mapM_ (updateInternalIO ptr) d
+  | otherwise    = error "SHA256.updates: invalid Ctx"
 
 {-# NOINLINE finalize #-}
 -- | finalize the context into a digest bytestring
 finalize :: Ctx -> ByteString
-finalize ctx = unsafeDoIO $ withCtxThrow ctx finalizeInternalIO
+finalize ctx
+  | validCtx ctx = unsafeDoIO $ withCtxThrow ctx finalizeInternalIO
+  | otherwise    = error "SHA256.finalize: invalid Ctx"
 
 {-# NOINLINE hash #-}
 -- | hash a strict bytestring into a digest bytestring

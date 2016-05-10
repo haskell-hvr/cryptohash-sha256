@@ -36,8 +36,9 @@ struct sha256_ctx
 	uint32_t h[8];
 };
 
+/* keep this synchronised with 'digestSize'/'sizeCtx' in SHA256.hs */
 #define SHA256_DIGEST_SIZE	32
-#define SHA256_CTX_SIZE		sizeof(struct sha256_ctx)
+#define SHA256_CTX_SIZE		168
 
 void hs_cryptohash_sha256_init (struct sha256_ctx *ctx);
 void hs_cryptohash_sha256_update (struct sha256_ctx *ctx, const uint8_t *data, size_t len);
