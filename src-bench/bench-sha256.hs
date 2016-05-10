@@ -1,41 +1,36 @@
 {-# LANGUAGE BangPatterns #-}
-import Criterion.Main
-import qualified Data.ByteString as B
+
+import           Criterion.Main
+import qualified Crypto.Hash.SHA256   as SHA256
+import qualified Data.ByteString      as B
 import qualified Data.ByteString.Lazy as L
-import qualified Crypto.Hash.SHA256 as SHA256
 
-hashmany (i,u,f) = f . foldl u i
+benchSize :: Int -> Benchmark
+benchSize sz = bs `seq` bench msg (whnf SHA256.hash bs)
+  where
+    bs = B.replicate sz 0
+    msg = "bs-" ++ show sz
 
-allHashs =
-    [ ("SHA2-256",SHA256.hash, hashmany (SHA256.init,SHA256.update,SHA256.finalize))
-    ]
-
-benchHash :: a -> (a -> B.ByteString) -> Benchmarkable
-benchHash bs f = whnf f bs
-
-withHashesFilter out f = map f $ filter (\(n,_,_) -> not (n `elem` out)) allHashs
-withHashes f = map f allHashs
-
+main :: IO ()
 main = do
-    let !bs0      = B.replicate 0 0
-        !bs32     = B.replicate 32 0
-        !bs64     = B.replicate 64 0
-        !bs128    = B.replicate 128 0
-        !bs256    = B.replicate 256 0
-        !bs1024   = B.replicate 1024 0
-        !bs4096   = B.replicate 4096 0
-        !bs1M     = B.replicate (1*1024*1024) 0
-    let !lbs64x256 = (map (const (B.replicate 64 0)) [0..3])
-        !lbs64x4096 = (map (const (B.replicate 64 0)) [0..63])
+    let !lbs64x256  = L.fromChunks $ replicate 4  (B.replicate 64 0)
+        !lbs64x4096 = L.fromChunks $ replicate 64 (B.replicate 64 0)
     defaultMain
-        [ bgroup "hash-0b"  (withHashes (\(name, f,_) -> bench name $ benchHash bs0 f))
-        , bgroup "hash-32b" (withHashes (\(name, f,_) -> bench name $ benchHash bs32 f))
-        , bgroup "hash-64b" (withHashes (\(name, f,_) -> bench name $ benchHash bs64 f))
-        , bgroup "hash-128b" (withHashes (\(name, f,_) -> bench name $ benchHash bs128 f))
-        , bgroup "hash-256b" (withHashes (\(name, f,_) -> bench name $ benchHash bs256 f))
-        , bgroup "hash-1Kb" (withHashes (\(name, f,_) -> bench name $ benchHash bs1024 f))
-        , bgroup "hash-4Kb" (withHashes (\(name, f,_) -> bench name $ benchHash bs4096 f))
-        , bgroup "hash-1Mb" (withHashesFilter ["MD2"] (\(name, f,_) -> bench name $ benchHash bs1M f))
-        , bgroup "iuf-64x256" (withHashes (\(name, _,f) -> bench name $ benchHash lbs64x256 f))
-        , bgroup "iuf-64x4096" (withHashes (\(name, _,f) -> bench name $ benchHash lbs64x4096 f))
+        [ bgroup "cryptohash-sha256"
+          [ benchSize 0
+          , benchSize 8
+          , benchSize 32
+          , benchSize 64
+          , benchSize 128
+          , benchSize 256
+          , benchSize 1024
+          , benchSize 4096
+          , benchSize (128*1024)
+          , benchSize (1024*1024)
+          , benchSize (2*1024*1024)
+          , benchSize (4*1024*1024)
+
+          , L.length lbs64x256  `seq` bench "lbs64x256"  (whnf SHA256.hashlazy lbs64x256)
+          , L.length lbs64x4096 `seq` bench "lbs64x4096" (whnf SHA256.hashlazy lbs64x4096)
+          ]
         ]
