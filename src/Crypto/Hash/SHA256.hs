@@ -112,7 +112,7 @@ withByteStringPtr b f =
     where (fptr, off, _) = toForeignPtr b
 
 copyCtx :: Ptr Ctx -> Ptr Ctx -> IO ()
-copyCtx dst src = memcpy (castPtr dst) (castPtr src) sizeCtx
+copyCtx dst src = memcpy (castPtr dst) (castPtr src) (fromIntegral sizeCtx)
 
 withCtxCopy :: Ctx -> (Ptr Ctx -> IO ()) -> IO Ctx
 withCtxCopy (Ctx ctxB) f = Ctx `fmap` createCtx
