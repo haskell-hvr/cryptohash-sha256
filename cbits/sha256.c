@@ -23,9 +23,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#define _POSIX_C_SOURCE 200112L
+#include <arpa/inet.h>
 #include <string.h>
+
 #include "sha256.h"
-#include "bitfn.h"
+#include <ghcautoconf.h>
+
+static inline void
+htonl_array(uint32_t *dest, const uint32_t *src, unsigned wordcnt)
+{
+  while (wordcnt--)
+    *dest++ = htonl(*src++);
+}
+
+static inline uint32_t
+ror32(uint32_t word, uint32_t shift)
+{
+  // GCC usually transforms this into a 'ror'-insn
+  return (word >> shift) | (word << (32 - shift));
+}
+
+static inline uint64_t
+hs_htonll(uint64_t hll)
+{
+#if WORDS_BIGENDIAN
+  return hll;
+#elif __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2)
+  return __builtin_bswap64(hll);
+#else
+  return ((uint64_t)htonl(hll & 0xFFFFFFFF) << 32LL) | htonl(hll >> 32);
+#endif
+}
+
 
 void
 hs_cryptohash_sha256_init (struct sha256_ctx *ctx)
@@ -69,7 +99,7 @@ sha256_do_chunk(struct sha256_ctx *ctx, uint32_t buf[])
 	int i;
 	uint32_t w[64];
 
-	cpu_to_be32_array(w, buf, 16);
+	htonl_array(w, buf, 16);
 	for (i = 16; i < 64; i++)
 		w[i] = s1(w[i - 2]) + w[i - 7] + s0(w[i - 15]) + w[i - 16];
 
@@ -137,7 +167,7 @@ hs_cryptohash_sha256_finalize (struct sha256_ctx *ctx, uint8_t *out)
 	uint32_t *p = (uint32_t *) out;
 
 	/* cpu -> big endian */
-	bits = cpu_to_be64(ctx->sz << 3);
+	bits = hs_htonll(ctx->sz << 3);
 
 	/* pad out to 56 */
 	index = (uint32_t) (ctx->sz & 0x3f);
@@ -149,5 +179,5 @@ hs_cryptohash_sha256_finalize (struct sha256_ctx *ctx, uint8_t *out)
 
 	/* store to digest */
 	for (i = 0; i < 8; i++)
-		p[i] = cpu_to_be32(ctx->h[i]);
+		p[i] = htonl(ctx->h[i]);
 }
