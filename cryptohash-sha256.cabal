@@ -7,7 +7,7 @@ description:
     .
     The implementation is made in C with a haskell FFI wrapper that hides the C implementation.
     .
-    NOTE: This package has been forked off @cryptohash-0.11.7@ because the @cryptohash@ has been
+    NOTE: This package has been forked off @cryptohash-0.11.7@ because the @cryptohash@ package has been
     deprecated and so this package continues to satisfy the need for a lightweight package
     providing the SHA256 hash algorithm without any dependencies on packages other than
     @base@ and @bytestring@.

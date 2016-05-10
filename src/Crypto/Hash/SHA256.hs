@@ -17,7 +17,7 @@ module Crypto.Hash.SHA256
     --
     --  - 'init': create a new hash context
     --  - 'update': update non-destructively a new hash context with a strict bytestring
-    --  - 'updates': same as update, except that it takes a list of strict bytestring
+    --  - 'updates': same as update, except that it takes a list of strict bytestrings
     --  - 'finalize': finalize the context and returns a digest bytestring.
     --
     -- all those operations are completely pure, and instead of
@@ -94,13 +94,13 @@ unsafeDoIO = unsafeDupablePerformIO
 --
 -- The context data is made up of
 --
---  * 'Word64' count of bytes feed to hash algorithm so far,
+--  * a 'Word64' representing the number of bytes already feed to hash algorithm so far,
 --
 --  * a 64-element 'Word8' buffer holding partial input-chunks, and finally
 --
---  * a 8-element 'Word32' array holding the current
---    work-in-progress digest-value
+--  * a 8-element 'Word32' array holding the current work-in-progress digest-value.
 --
+-- Consequently, a SHA-256 digest as produced by 'hash', 'hashlazy', or 'finalize' is 32 bytes long.
 newtype Ctx = Ctx ByteString
 
 -- keep this synchronised with cbits/sha256.h
@@ -174,7 +174,7 @@ finalizeInternalIO :: Ptr Ctx -> IO ByteString
 finalizeInternalIO ptr = create digestSize (c_sha256_finalize ptr)
 
 {-# NOINLINE init #-}
--- | init a context
+-- | create a new hash context
 init :: Ctx
 init = unsafeDoIO $ withCtxNew $ c_sha256_init
 
@@ -189,27 +189,27 @@ update ctx d
   | otherwise    = error "SHA256.update: invalid Ctx"
 
 {-# NOINLINE updates #-}
--- | updates a context with multiples bytestring
+-- | updates a context with multiple bytestrings
 updates :: Ctx -> [ByteString] -> Ctx
 updates ctx d
   | validCtx ctx = unsafeDoIO $ withCtxCopy ctx $ \ptr -> mapM_ (updateInternalIO ptr) d
   | otherwise    = error "SHA256.updates: invalid Ctx"
 
 {-# NOINLINE finalize #-}
--- | finalize the context into a digest bytestring
+-- | finalize the context into a digest bytestring (32 bytes)
 finalize :: Ctx -> ByteString
 finalize ctx
   | validCtx ctx = unsafeDoIO $ withCtxThrow ctx finalizeInternalIO
   | otherwise    = error "SHA256.finalize: invalid Ctx"
 
 {-# NOINLINE hash #-}
--- | hash a strict bytestring into a digest bytestring
+-- | hash a strict bytestring into a digest bytestring (32 bytes)
 hash :: ByteString -> ByteString
 hash d = unsafeDoIO $ withCtxNewThrow $ \ptr -> do
     c_sha256_init ptr >> updateInternalIO ptr d >> finalizeInternalIO ptr
 
 {-# NOINLINE hashlazy #-}
--- | hash a lazy bytestring into a digest bytestring
+-- | hash a lazy bytestring into a digest bytestring (32 bytes)
 hashlazy :: L.ByteString -> ByteString
 hashlazy l = unsafeDoIO $ withCtxNewThrow $ \ptr -> do
     c_sha256_init ptr >> mapM_ (updateInternalIO ptr) (L.toChunks l) >> finalizeInternalIO ptr
