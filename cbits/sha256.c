@@ -23,25 +23,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define _POSIX_C_SOURCE 200112L
-#include <arpa/inet.h>
-#include <string.h>
-
 #include "sha256.h"
-#include <ghcautoconf.h>
 
-static inline void
-htonl_array(uint32_t *dest, const uint32_t *src, unsigned wordcnt)
-{
-  while (wordcnt--)
-    *dest++ = htonl(*src++);
-}
+#include <string.h>
+#include <ghcautoconf.h>
 
 static inline uint32_t
 ror32(uint32_t word, uint32_t shift)
 {
   // GCC usually transforms this into a 'ror'-insn
   return (word >> shift) | (word << (32 - shift));
+}
+
+static inline uint32_t
+hs_htonl(uint32_t hl)
+{
+#if WORDS_BIGENDIAN
+  return hl;
+#elif __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2)
+  return __builtin_bswap32(hl);
+#else
+  // GCC usually transforms this into a bswap insn
+  return ((hl & 0xff000000) >> 24) |
+         ((hl & 0x00ff0000) >> 8)  |
+         ((hl & 0x0000ff00) << 8)  |
+         ( hl               << 24);
+#endif
+}
+
+static inline void
+hs_htonl_array(uint32_t *dest, const uint32_t *src, unsigned wordcnt)
+{
+  while (wordcnt--)
+    *dest++ = hs_htonl(*src++);
 }
 
 static inline uint64_t
@@ -52,7 +66,7 @@ hs_htonll(uint64_t hll)
 #elif __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2)
   return __builtin_bswap64(hll);
 #else
-  return ((uint64_t)htonl(hll & 0xFFFFFFFF) << 32LL) | htonl(hll >> 32);
+  return ((uint64_t)hs_htonl(hll & 0xFFFFFFFF) << 32LL) | hs_htonl(hll >> 32);
 #endif
 }
 
@@ -61,7 +75,7 @@ void
 hs_cryptohash_sha256_init (struct sha256_ctx *ctx)
 {
 	memset(ctx, 0, sizeof(*ctx));
-
+        
 	ctx->h[0] = 0x6a09e667;
 	ctx->h[1] = 0xbb67ae85;
 	ctx->h[2] = 0x3c6ef372;
@@ -99,7 +113,7 @@ sha256_do_chunk(struct sha256_ctx *ctx, uint32_t buf[])
 	int i;
 	uint32_t w[64];
 
-	htonl_array(w, buf, 16);
+	hs_htonl_array(w, buf, 16);
 	for (i = 16; i < 64; i++)
 		w[i] = s1(w[i - 2]) + w[i - 7] + s0(w[i - 15]) + w[i - 16];
 
@@ -163,8 +177,7 @@ hs_cryptohash_sha256_finalize (struct sha256_ctx *ctx, uint8_t *out)
 {
 	static uint8_t padding[64] = { 0x80, };
 	uint64_t bits;
-	uint32_t i, index, padlen;
-	uint32_t *p = (uint32_t *) out;
+	uint32_t index, padlen;
 
 	/* cpu -> big endian */
 	bits = hs_htonll(ctx->sz << 3);
@@ -178,6 +191,5 @@ hs_cryptohash_sha256_finalize (struct sha256_ctx *ctx, uint8_t *out)
 	hs_cryptohash_sha256_update(ctx, (uint8_t *) &bits, sizeof(bits));
 
 	/* store to digest */
-	for (i = 0; i < 8; i++)
-		p[i] = htonl(ctx->h[i]);
+        hs_htonl_array((uint32_t *) out, ctx->h, 8);
 }
