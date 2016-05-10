@@ -68,18 +68,8 @@ test-suite test-sha256
 benchmark bench-hashes
   default-language:  Haskell2010
   type:              exitcode-stdio-1.0
-  main-is:           Bench.hs
-  hs-source-dirs:    Bench
-  build-depends:     cryptohash-sha256
-                   , base
-                   , bytestring
-                   , criterion        == 1.1.*
-
-benchmark bench-api
-  default-language:  Haskell2010
-  type:              exitcode-stdio-1.0
-  main-is:           BenchAPI.hs
-  hs-source-dirs:    Bench
+  main-is:           bench-sha256.hs
+  hs-source-dirs:    src-bench
   build-depends:     cryptohash-sha256
                    , base
                    , bytestring
