@@ -17,7 +17,8 @@ withHashesFilter out f = map f $ filter (\(n,_,_) -> not (n `elem` out)) allHash
 withHashes f = map f allHashs
 
 main = do
-    let !bs32     = B.replicate 32 0
+    let !bs0      = B.replicate 0 0
+        !bs32     = B.replicate 32 0
         !bs64     = B.replicate 64 0
         !bs128    = B.replicate 128 0
         !bs256    = B.replicate 256 0
@@ -27,7 +28,8 @@ main = do
     let !lbs64x256 = (map (const (B.replicate 64 0)) [0..3])
         !lbs64x4096 = (map (const (B.replicate 64 0)) [0..63])
     defaultMain
-        [ bgroup "hash-32b" (withHashes (\(name, f,_) -> bench name $ benchHash bs32 f))
+        [ bgroup "hash-0b"  (withHashes (\(name, f,_) -> bench name $ benchHash bs0 f))
+        , bgroup "hash-32b" (withHashes (\(name, f,_) -> bench name $ benchHash bs32 f))
         , bgroup "hash-64b" (withHashes (\(name, f,_) -> bench name $ benchHash bs64 f))
         , bgroup "hash-128b" (withHashes (\(name, f,_) -> bench name $ benchHash bs128 f))
         , bgroup "hash-256b" (withHashes (\(name, f,_) -> bench name $ benchHash bs256 f))
