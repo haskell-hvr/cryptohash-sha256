@@ -1,4 +1,4 @@
 *~
-cabal.project.local
+/cabal.project.local
 /dist/
 /dist-newstyle/
