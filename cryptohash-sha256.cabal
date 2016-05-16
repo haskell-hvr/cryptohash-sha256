@@ -1,8 +1,9 @@
 name:                cryptohash-sha256
-version:             0.11.7.2
+version:             0.11.100.0
 description:
     A practical incremental and one-pass, pure API to the
     <https://en.wikipedia.org/wiki/SHA-2 SHA-256 hash algorithm>
+    (including <https://en.wikipedia.org/wiki/HMAC HMAC> support)
     with performance close to the fastest implementations available in other languages.
     .
     The implementation is made in C with a haskell FFI wrapper that hides the C implementation.
@@ -46,7 +47,7 @@ library
   hs-source-dirs:    src
   exposed-modules:   Crypto.Hash.SHA256
   ghc-options:       -Wall -fno-cse -O2
-  cc-options:        -O3
+  cc-options:        -Wall -O3
   c-sources:         cbits/sha256.c
   include-dirs:      cbits
 

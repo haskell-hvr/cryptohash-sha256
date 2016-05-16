@@ -1,3 +1,9 @@
+## 0.11.100.0
+
+ - new `hmac` and `hmaclazy` functions providing HMAC-SHA1
+   computation conforming to RFC2104 and RFC4231
+ - fix unaligned memory-accesses
+
 ## 0.11.7.2
 
  - switch to 'safe' FFI for calls where overhead becomes neglible
