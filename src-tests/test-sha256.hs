@@ -8,14 +8,14 @@ import qualified Data.ByteString.Lazy   as BL
 import qualified Data.ByteString.Base16 as B16
 
 -- reference implementation
-import qualified Data.Digest.Pure.SHA as REF
+import qualified Data.Digest.Pure.SHA   as REF
 
 -- implementation under test
 import qualified Crypto.Hash.SHA256     as IUT
 
 import           Test.Tasty
 import           Test.Tasty.HUnit
-import           Test.Tasty.QuickCheck as QC
+import           Test.Tasty.QuickCheck  as QC
 
 vectors :: [ByteString]
 vectors =
@@ -64,7 +64,11 @@ katTests
         , testCase "lazy-7"   (r @=? runTestLazy 7 v)
         , testCase "lazy-8"   (r @=? runTestLazy 8 v)
         , testCase "lazy-16"  (r @=? runTestLazy 16 v)
-        ]
+        ] ++
+        [ testCase "lazy-63u"  (r @=? runTestLazyU 63 v) | B.length v > 63 ] ++
+        [ testCase "lazy-65u"  (r @=? runTestLazyU 65 v) | B.length v > 65 ] ++
+        [ testCase "lazy-97u"  (r @=? runTestLazyU 97 v) | B.length v > 97 ] ++
+        [ testCase "lazy-131u" (r @=? runTestLazyU 131 v) | B.length v > 131 ]
 
     runTest :: ByteString -> ByteString
     runTest = B16.encode . IUT.hash
@@ -74,6 +78,10 @@ katTests
 
     runTestLazy :: Int -> ByteString -> ByteString
     runTestLazy i = B16.encode . IUT.hashlazy . BL.fromChunks . splitB i
+
+    -- force unaligned md5-blocks
+    runTestLazyU :: Int -> ByteString -> ByteString
+    runTestLazyU i = B16.encode . IUT.hashlazy . BL.fromChunks . map B.copy . splitB i
 
     ----
 
