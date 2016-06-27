@@ -50,7 +50,7 @@ cpu_to_be32(const uint32_t hl)
 {
 #if WORDS_BIGENDIAN
   return hl;
-#elif __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2)
+#elif __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
   return __builtin_bswap32(hl);
 #else
   /* GCC usually transforms this into a bswap insn */
@@ -73,7 +73,7 @@ cpu_to_be64(const uint64_t hll)
 {
 #if WORDS_BIGENDIAN
   return hll;
-#elif __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2)
+#elif __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
   return __builtin_bswap64(hll);
 #else
   return ((uint64_t)cpu_to_be32(hll & 0xffffffff) << 32LL) | cpu_to_be32(hll >> 32);

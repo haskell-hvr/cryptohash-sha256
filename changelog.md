@@ -1,3 +1,8 @@
+## 0.11.100.1
+
+ - Use `__builtin_bswap{32,64}` only with GCC >= 4.3
+   ([#1](https://github.com/hvr/cryptohash-sha256/issues/1))
+
 ## 0.11.100.0
 
  - new `hmac` and `hmaclazy` functions providing HMAC-SHA1
