@@ -250,4 +250,16 @@ hs_cryptohash_sha256_finalize (struct sha256_ctx *ctx, uint8_t *out)
   return sz;
 }
 
+static inline void
+hs_cryptohash_sha256_hash (const uint8_t *data, size_t len, uint8_t *out)
+{
+  struct sha256_ctx ctx;
+
+  hs_cryptohash_sha256_init(&ctx);
+
+  hs_cryptohash_sha256_update(&ctx, data, len);
+
+  hs_cryptohash_sha256_finalize(&ctx, out);
+}
+
 #endif

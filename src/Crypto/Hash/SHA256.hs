@@ -157,6 +157,12 @@ c_sha256_update pctx pbuf sz
   | sz < 4096 = c_sha256_update_unsafe pctx pbuf sz
   | otherwise = c_sha256_update_safe   pctx pbuf sz
 
+-- 'safe' call overhead neglible for 4KiB and more
+c_sha256_hash :: Ptr Word8 -> CSize -> Ptr Word8 -> IO ()
+c_sha256_hash pbuf sz pout
+  | sz < 4096 = c_sha256_hash_unsafe pbuf sz pout
+  | otherwise = c_sha256_hash_safe   pbuf sz pout
+
 updateInternalIO :: Ptr Ctx -> ByteString -> IO ()
 updateInternalIO ptr d =
     unsafeUseAsCStringLen d (\(cs, len) -> c_sha256_update ptr (castPtr cs) (fromIntegral len))
@@ -209,8 +215,8 @@ finalizeAndLength ctx
 {-# NOINLINE hash #-}
 -- | hash a strict bytestring into a digest bytestring (32 bytes)
 hash :: ByteString -> ByteString
-hash d = unsafeDoIO $ withCtxNewThrow $ \ptr -> do
-    c_sha256_init ptr >> updateInternalIO ptr d >> finalizeInternalIO ptr
+-- hash d = unsafeDoIO $ withCtxNewThrow $ \ptr -> c_sha256_init ptr >> updateInternalIO ptr d >> finalizeInternalIO ptr
+hash d = unsafeDoIO $ unsafeUseAsCStringLen d $ \(cs, len) -> create digestSize (c_sha256_hash (castPtr cs) (fromIntegral len))
 
 {-# NOINLINE hashlazy #-}
 -- | hash a lazy bytestring into a digest bytestring (32 bytes)

@@ -9,6 +9,8 @@
       - `hashlazyAndLength`
       - `hmaclazyAndLength`
 
+ - Minor optimizations in `hmac` and `hash`
+
 ## 0.11.100.1
 
  - Use `__builtin_bswap{32,64}` only with GCC >= 4.3

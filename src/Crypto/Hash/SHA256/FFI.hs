@@ -53,3 +53,9 @@ foreign import capi unsafe "hs_sha256.h hs_cryptohash_sha256_finalize"
 
 foreign import capi unsafe "hs_sha256.h hs_cryptohash_sha256_finalize"
     c_sha256_finalize :: Ptr Ctx -> Ptr Word8 -> IO ()
+
+foreign import capi unsafe "hs_sha256.h hs_cryptohash_sha256_hash"
+    c_sha256_hash_unsafe :: Ptr Word8 -> CSize -> Ptr Word8 -> IO ()
+
+foreign import capi safe "hs_sha256.h hs_cryptohash_sha256_hash"
+    c_sha256_hash_safe :: Ptr Word8 -> CSize -> Ptr Word8 -> IO ()
