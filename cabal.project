@@ -1,3 +1,5 @@
+-- see http://cabal.readthedocs.io/en/latest/nix-local-build-overview.html
+
 packages: .
 tests: true
 benchmarks: true
