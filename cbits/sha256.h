@@ -42,6 +42,6 @@ struct sha256_ctx
 
 void hs_cryptohash_sha256_init (struct sha256_ctx *ctx);
 void hs_cryptohash_sha256_update (struct sha256_ctx *ctx, const uint8_t *data, size_t len);
-void hs_cryptohash_sha256_finalize (struct sha256_ctx *ctx, uint8_t *out);
+uint64_t hs_cryptohash_sha256_finalize (struct sha256_ctx *ctx, uint8_t *out);
 
 #endif

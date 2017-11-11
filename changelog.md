@@ -1,3 +1,11 @@
+## 0.11.101.0
+
+ - Added `...AndLength` variants of hashing functions:
+
+      - `finalizeAndLength`
+      - `hashlazyAndLength`
+      - `hmaclazyAndLength`
+
 ## 0.11.100.1
 
  - Use `__builtin_bswap{32,64}` only with GCC >= 4.3

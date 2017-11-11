@@ -209,10 +209,11 @@ hs_cryptohash_sha256_update(struct sha256_ctx *ctx, const uint8_t *data, size_t 
     memcpy(ctx->buf + index, data, len);
 }
 
-void
+uint64_t
 hs_cryptohash_sha256_finalize (struct sha256_ctx *ctx, uint8_t *out)
 {
   static const uint8_t padding[64] = { 0x80, };
+  const uint64_t sz = ctx->sz;
 
   /* add padding and update data with it */
   uint64_t bits = cpu_to_be64(ctx->sz << 3);
@@ -227,4 +228,6 @@ hs_cryptohash_sha256_finalize (struct sha256_ctx *ctx, uint8_t *out)
 
   /* output hash */
   cpu_to_be32_array((uint32_t *) out, ctx->h, 8);
+
+  return sz;
 }

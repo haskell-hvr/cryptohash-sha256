@@ -1,9 +1,8 @@
 -- |
 -- Module      : Crypto.Hash.SHA256
--- License     : BSD-style
+-- License     : BSD-3
 -- Maintainer  : Herbert Valerio Riedel <hvr@gnu.org>
 -- Stability   : stable
--- Portability : unknown
 --
 -- A module containing <https://en.wikipedia.org/wiki/SHA-2 SHA-256> bindings
 --
@@ -40,6 +39,7 @@ module Crypto.Hash.SHA256
     , update   -- :: Ctx -> ByteString -> Ctx
     , updates  -- :: Ctx -> [ByteString] -> Ctx
     , finalize -- :: Ctx -> ByteString
+    , finalizeAndLength -- :: Ctx -> (ByteString,Word64)
 
     -- * Single Pass API
     --
@@ -49,6 +49,7 @@ module Crypto.Hash.SHA256
     --
     --  - 'hash': create a digest ('init' + 'update' + 'finalize') from a strict 'ByteString'
     --  - 'hashlazy': create a digest ('init' + 'update' + 'finalize') from a lazy 'L.ByteString'
+    --  - 'hashlazyAndLength': create a digest ('init' + 'update' + 'finalizeAndLength') from a lazy 'L.ByteString'
     --
     -- Example:
     --
@@ -64,6 +65,7 @@ module Crypto.Hash.SHA256
 
     , hash     -- :: ByteString -> ByteString
     , hashlazy -- :: L.ByteString -> ByteString
+    , hashlazyAndLength -- :: L.ByteString -> (ByteString,Int64)
 
     -- ** HMAC-SHA-256
     --
@@ -72,6 +74,7 @@ module Crypto.Hash.SHA256
 
     , hmac     -- :: ByteString -> ByteString -> ByteString
     , hmaclazy -- :: ByteString -> L.ByteString -> ByteString
+    , hmaclazyAndLength -- :: ByteString -> L.ByteString -> (ByteString,Word64)
     ) where
 
 import Prelude hiding (init)
@@ -79,11 +82,12 @@ import Foreign.C.Types
 import Foreign.Ptr
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Marshal.Alloc
+import Control.Monad (void)
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString as B
 import Data.ByteString (ByteString)
 import Data.ByteString.Unsafe (unsafeUseAsCStringLen)
-import Data.ByteString.Internal (create, toForeignPtr, memcpy)
+import Data.ByteString.Internal (create, toForeignPtr, memcpy, mallocByteString, ByteString(PS))
 import Data.Bits (xor)
 import Data.Word
 import System.IO.Unsafe (unsafeDupablePerformIO)
@@ -133,6 +137,15 @@ withByteStringPtr b f =
     withForeignPtr fptr $ \ptr -> f (ptr `plusPtr` off)
     where (fptr, off, _) = toForeignPtr b
 
+{-# INLINE create' #-}
+-- | Variant of 'create' which allows to return an argument
+create' :: Int -> (Ptr Word8 -> IO a) -> IO (ByteString,a)
+create' l f = do
+    fp <- mallocByteString l
+    x <- withForeignPtr fp $ \p -> f p
+    let bs = PS fp 0 l
+    return $! x `seq` bs `seq` (bs,x)
+
 copyCtx :: Ptr Ctx -> Ptr Ctx -> IO ()
 copyCtx dst src = memcpy (castPtr dst) (castPtr src) (fromIntegral sizeCtx)
 
@@ -173,14 +186,18 @@ c_sha256_update pctx pbuf sz
   | otherwise = c_sha256_update_safe   pctx pbuf sz
 
 foreign import ccall unsafe "sha256.h hs_cryptohash_sha256_finalize"
-    c_sha256_finalize :: Ptr Ctx -> Ptr Word8 -> IO ()
+    c_sha256_finalize :: Ptr Ctx -> Ptr Word8 -> IO Word64
 
 updateInternalIO :: Ptr Ctx -> ByteString -> IO ()
 updateInternalIO ptr d =
     unsafeUseAsCStringLen d (\(cs, len) -> c_sha256_update ptr (castPtr cs) (fromIntegral len))
 
 finalizeInternalIO :: Ptr Ctx -> IO ByteString
-finalizeInternalIO ptr = create digestSize (c_sha256_finalize ptr)
+finalizeInternalIO ptr = create digestSize (void . c_sha256_finalize ptr)
+
+finalizeInternalIO' :: Ptr Ctx -> IO (ByteString,Word64)
+finalizeInternalIO' ptr = create' digestSize (c_sha256_finalize ptr)
+
 
 {-# NOINLINE init #-}
 -- | create a new hash context
@@ -211,6 +228,15 @@ finalize ctx
   | validCtx ctx = unsafeDoIO $ withCtxThrow ctx finalizeInternalIO
   | otherwise    = error "SHA256.finalize: invalid Ctx"
 
+{-# NOINLINE finalizeAndLength #-}
+-- | Variant of 'finalize' also returning length of hashed content
+--
+-- @since 0.11.101.0
+finalizeAndLength :: Ctx -> (ByteString,Word64)
+finalizeAndLength ctx
+  | validCtx ctx = unsafeDoIO $ withCtxThrow ctx finalizeInternalIO'
+  | otherwise    = error "SHA256.finalize: invalid Ctx"
+
 {-# NOINLINE hash #-}
 -- | hash a strict bytestring into a digest bytestring (32 bytes)
 hash :: ByteString -> ByteString
@@ -223,6 +249,13 @@ hashlazy :: L.ByteString -> ByteString
 hashlazy l = unsafeDoIO $ withCtxNewThrow $ \ptr -> do
     c_sha256_init ptr >> mapM_ (updateInternalIO ptr) (L.toChunks l) >> finalizeInternalIO ptr
 
+{-# NOINLINE hashlazyAndLength #-}
+-- | Variant of 'hashlazy' which simultaneously computes the hash and length of a lazy bytestring.
+--
+-- @since 0.11.101.0
+hashlazyAndLength :: L.ByteString -> (ByteString,Word64)
+hashlazyAndLength l = unsafeDoIO $ withCtxNewThrow $ \ptr -> do
+    c_sha256_init ptr >> mapM_ (updateInternalIO ptr) (L.toChunks l) >> finalizeInternalIO' ptr
 
 {-# NOINLINE hmac #-}
 -- | Compute 32-byte <https://tools.ietf.org/html/rfc2104 RFC2104>-compatible
@@ -252,6 +285,26 @@ hmaclazy :: ByteString   -- ^ secret
          -> ByteString
 hmaclazy secret msg = hash $ B.append opad (hashlazy $ L.append ipad msg)
   where
+    opad = B.map (xor 0x5c) k'
+    ipad = L.fromChunks [B.map (xor 0x36) k']
+
+    k'  = B.append kt pad
+    kt  = if B.length secret > 64 then hash secret else secret
+    pad = B.replicate (64 - B.length kt) 0
+
+
+{-# NOINLINE hmaclazyAndLength #-}
+-- | Variant of 'hmaclazy' which also returns length of message
+--
+-- @since 0.11.101.0
+hmaclazyAndLength :: ByteString   -- ^ secret
+                 -> L.ByteString -- ^ message
+                 -> (ByteString,Word64)
+hmaclazyAndLength secret msg =
+    (hash (B.append opad htmp), sz' - fromIntegral (L.length ipad))
+  where
+    (htmp, sz') = hashlazyAndLength (L.append ipad msg)
+
     opad = B.map (xor 0x5c) k'
     ipad = L.fromChunks [B.map (xor 0x36) k']
 

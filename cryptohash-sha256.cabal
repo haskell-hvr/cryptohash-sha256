@@ -1,5 +1,7 @@
+cabal-version:       1.12
 name:                cryptohash-sha256
-version:             0.11.100.1
+version:             0.11.101.1
+
 description:
     A practical incremental and one-pass, pure API to the
     <https://en.wikipedia.org/wiki/SHA-2 SHA-256 hash algorithm>
@@ -25,7 +27,6 @@ bug-reports:         https://github.com/hvr/cryptohash-sha256/issues
 synopsis:            Fast, pure and practical SHA-256 implementation
 category:            Data, Cryptography
 build-type:          Simple
-cabal-version:       >=1.10
 tested-with:         GHC == 7.4.2
                    , GHC == 7.6.3
                    , GHC == 7.8.4
