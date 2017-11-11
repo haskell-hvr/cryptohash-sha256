@@ -1,5 +1,7 @@
 ## 0.11.101.0
 
+ - Declare `Crypto.Hash.SHA256` module `-XTrustworthy`
+ - Remove ineffective RULES
  - Convert to `CApiFFI`
  - Added `...AndLength` variants of hashing functions:
 

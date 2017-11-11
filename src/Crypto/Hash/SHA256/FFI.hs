@@ -1,4 +1,5 @@
 {-# LANGUAGE CApiFFI #-}
+{-# LANGUAGE Unsafe #-}
 
 -- Ugly hack to workaround https://ghc.haskell.org/trac/ghc/ticket/14452
 {-# OPTIONS_GHC -O0

@@ -1,3 +1,5 @@
+{-# LANGUAGE Trustworthy #-}
+
 -- |
 -- Module      : Crypto.Hash.SHA256
 -- License     : BSD-3
