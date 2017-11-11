@@ -234,7 +234,7 @@ hashlazyAndLength l = unsafeDoIO $ withCtxNewThrow $ \ptr -> do
 hmac :: ByteString -- ^ secret
      -> ByteString -- ^ message
      -> ByteString
-hmac secret msg = hash $ B.append opad (hash $ B.append ipad msg)
+hmac secret msg = hash $ B.append opad (hashlazy $ L.fromChunks [ipad,msg])
   where
     opad = B.map (xor 0x5c) k'
     ipad = B.map (xor 0x36) k'
