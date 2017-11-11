@@ -1,5 +1,6 @@
 ## 0.11.101.0
 
+ - Convert to `CApiFFI`
  - Added `...AndLength` variants of hashing functions:
 
       - `finalizeAndLength`

@@ -82,7 +82,6 @@ import Foreign.C.Types
 import Foreign.Ptr
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Marshal.Alloc
-import Control.Monad (void)
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString as B
 import Data.ByteString (ByteString)
@@ -92,6 +91,8 @@ import Data.Bits (xor)
 import Data.Word
 import System.IO.Unsafe (unsafeDupablePerformIO)
 
+import Crypto.Hash.SHA256.FFI
+
 -- | perform IO for hashes that do allocation and ffi.
 -- unsafeDupablePerformIO is used when possible as the
 -- computation is pure and the output is directly linked
@@ -99,22 +100,6 @@ import System.IO.Unsafe (unsafeDupablePerformIO)
 -- been returned to the user.
 unsafeDoIO :: IO a -> a
 unsafeDoIO = unsafeDupablePerformIO
-
--- | SHA-256 Context
---
--- The context data is exactly 104 bytes long, however
--- the data in the context is stored in host-endianness.
---
--- The context data is made up of
---
---  * a 'Word64' representing the number of bytes already feed to hash algorithm so far,
---
---  * a 64-element 'Word8' buffer holding partial input-chunks, and finally
---
---  * a 8-element 'Word32' array holding the current work-in-progress digest-value.
---
--- Consequently, a SHA-256 digest as produced by 'hash', 'hashlazy', or 'finalize' is 32 bytes long.
-newtype Ctx = Ctx ByteString
 
 -- keep this synchronised with cbits/sha256.h
 {-# INLINE digestSize #-}
@@ -170,33 +155,21 @@ withCtxNew f = Ctx `fmap` create sizeCtx (f . castPtr)
 withCtxNewThrow :: (Ptr Ctx -> IO a) -> IO a
 withCtxNewThrow f = allocaBytes sizeCtx (f . castPtr)
 
-foreign import ccall unsafe "sha256.h hs_cryptohash_sha256_init"
-    c_sha256_init :: Ptr Ctx -> IO ()
-
-foreign import ccall unsafe "sha256.h hs_cryptohash_sha256_update"
-    c_sha256_update_unsafe :: Ptr Ctx -> Ptr Word8 -> CSize -> IO ()
-
-foreign import ccall safe "sha256.h hs_cryptohash_sha256_update"
-    c_sha256_update_safe :: Ptr Ctx -> Ptr Word8 -> CSize -> IO ()
-
 -- 'safe' call overhead neglible for 4KiB and more
 c_sha256_update :: Ptr Ctx -> Ptr Word8 -> CSize -> IO ()
 c_sha256_update pctx pbuf sz
   | sz < 4096 = c_sha256_update_unsafe pctx pbuf sz
   | otherwise = c_sha256_update_safe   pctx pbuf sz
 
-foreign import ccall unsafe "sha256.h hs_cryptohash_sha256_finalize"
-    c_sha256_finalize :: Ptr Ctx -> Ptr Word8 -> IO Word64
-
 updateInternalIO :: Ptr Ctx -> ByteString -> IO ()
 updateInternalIO ptr d =
     unsafeUseAsCStringLen d (\(cs, len) -> c_sha256_update ptr (castPtr cs) (fromIntegral len))
 
 finalizeInternalIO :: Ptr Ctx -> IO ByteString
-finalizeInternalIO ptr = create digestSize (void . c_sha256_finalize ptr)
+finalizeInternalIO ptr = create digestSize (c_sha256_finalize ptr)
 
 finalizeInternalIO' :: Ptr Ctx -> IO (ByteString,Word64)
-finalizeInternalIO' ptr = create' digestSize (c_sha256_finalize ptr)
+finalizeInternalIO' ptr = create' digestSize (c_sha256_finalize_len ptr)
 
 
 {-# NOINLINE init #-}

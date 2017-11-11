@@ -23,11 +23,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sha256.h"
+#ifndef HS_CRYPTOHASH_SHA256_H
+#define HS_CRYPTOHASH_SHA256_H
 
+#include <stdint.h>
+#include <stddef.h>
 #include <assert.h>
 #include <string.h>
 #include <ghcautoconf.h>
+
+struct sha256_ctx
+{
+  uint64_t sz;
+  uint8_t  buf[64];
+  uint32_t h[8];
+};
+
+/* keep this synchronised with 'digestSize'/'sizeCtx' in SHA256.hs */
+#define SHA256_DIGEST_SIZE	32
+#define SHA256_CTX_SIZE		104
+
+static inline void hs_cryptohash_sha256_init (struct sha256_ctx *ctx);
+static inline void hs_cryptohash_sha256_update (struct sha256_ctx *ctx, const uint8_t *data, size_t len);
+static inline uint64_t hs_cryptohash_sha256_finalize (struct sha256_ctx *ctx, uint8_t *out);
 
 #if defined(static_assert)
 static_assert(sizeof(struct sha256_ctx) == SHA256_CTX_SIZE, "unexpected sha256_ctx size");
@@ -81,7 +99,7 @@ cpu_to_be64(const uint64_t hll)
 }
 
 
-void
+static inline void
 hs_cryptohash_sha256_init (struct sha256_ctx *ctx)
 {
   memset(ctx, 0, SHA256_CTX_SIZE);
@@ -179,7 +197,7 @@ sha256_do_chunk(struct sha256_ctx *ctx, const uint8_t buf[])
   sha256_do_chunk_aligned(ctx, w);
 }
 
-void
+static inline void
 hs_cryptohash_sha256_update(struct sha256_ctx *ctx, const uint8_t *data, size_t len)
 {
   size_t index = ctx->sz & 0x3f;
@@ -209,7 +227,7 @@ hs_cryptohash_sha256_update(struct sha256_ctx *ctx, const uint8_t *data, size_t 
     memcpy(ctx->buf + index, data, len);
 }
 
-uint64_t
+static inline uint64_t
 hs_cryptohash_sha256_finalize (struct sha256_ctx *ctx, uint8_t *out)
 {
   static const uint8_t padding[64] = { 0x80, };
@@ -231,3 +249,5 @@ hs_cryptohash_sha256_finalize (struct sha256_ctx *ctx, uint8_t *out)
 
   return sz;
 }
+
+#endif
