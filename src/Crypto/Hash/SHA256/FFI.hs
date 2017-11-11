@@ -1,5 +1,5 @@
 {-# LANGUAGE CApiFFI #-}
-{-# LANGUAGE Unsafe #-}
+{-# LANGUAGE Unsafe  #-}
 
 -- Ugly hack to workaround https://ghc.haskell.org/trac/ghc/ticket/14452
 {-# OPTIONS_GHC -O0
@@ -18,10 +18,10 @@
 --
 module Crypto.Hash.SHA256.FFI where
 
-import Foreign.Ptr
-import Data.ByteString (ByteString)
-import Data.Word
-import Foreign.C.Types
+import           Data.ByteString (ByteString)
+import           Data.Word
+import           Foreign.C.Types
+import           Foreign.Ptr
 
 -- | SHA-256 Context
 --

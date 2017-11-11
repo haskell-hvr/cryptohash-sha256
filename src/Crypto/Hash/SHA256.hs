@@ -79,21 +79,23 @@ module Crypto.Hash.SHA256
     , hmaclazyAndLength -- :: ByteString -> L.ByteString -> (ByteString,Word64)
     ) where
 
-import Prelude hiding (init)
-import Foreign.C.Types
-import Foreign.Ptr
-import Foreign.ForeignPtr (withForeignPtr)
-import Foreign.Marshal.Alloc
-import qualified Data.ByteString.Lazy as L
-import qualified Data.ByteString as B
-import Data.ByteString (ByteString)
-import Data.ByteString.Unsafe (unsafeUseAsCStringLen)
-import Data.ByteString.Internal (create, toForeignPtr, memcpy, mallocByteString, ByteString(PS))
-import Data.Bits (xor)
-import Data.Word
-import System.IO.Unsafe (unsafeDupablePerformIO)
+import           Data.Bits                (xor)
+import           Data.ByteString          (ByteString)
+import qualified Data.ByteString          as B
+import           Data.ByteString.Internal (ByteString (PS), create,
+                                           mallocByteString, memcpy,
+                                           toForeignPtr)
+import qualified Data.ByteString.Lazy     as L
+import           Data.ByteString.Unsafe   (unsafeUseAsCStringLen)
+import           Data.Word
+import           Foreign.C.Types
+import           Foreign.ForeignPtr       (withForeignPtr)
+import           Foreign.Marshal.Alloc
+import           Foreign.Ptr
+import           Prelude                  hiding (init)
+import           System.IO.Unsafe         (unsafeDupablePerformIO)
 
-import Crypto.Hash.SHA256.FFI
+import           Crypto.Hash.SHA256.FFI
 
 -- | perform IO for hashes that do allocation and ffi.
 -- unsafeDupablePerformIO is used when possible as the
