@@ -2,21 +2,31 @@ cabal-version:       1.12
 name:                cryptohash-sha256
 version:             0.11.101.1
 
-description:
-    A practical incremental and one-pass, pure API to the
-    <https://en.wikipedia.org/wiki/SHA-2 SHA-256 hash algorithm>
-    (including <https://en.wikipedia.org/wiki/HMAC HMAC> support)
-    with performance close to the fastest implementations available in other languages.
-    .
-    The implementation is made in C with a haskell FFI wrapper that hides the C implementation.
-    .
-    NOTE: This package has been forked off @cryptohash-0.11.7@ because the @cryptohash@ package has been
-    deprecated and so this package continues to satisfy the need for a lightweight package
-    providing the SHA256 hash algorithm without any dependencies on packages other than
-    @base@ and @bytestring@.
-    .
-    Consequently, this package can be used as a drop-in replacement for @cryptohash@'s
-    "Crypto.Hash.SHA256" module, though with a clearly smaller footprint.
+synopsis:            Fast, pure and practical SHA-256 implementation
+description: {
+
+A practical incremental and one-pass, pure API to
+the [SHA-256 hash algorithm](https://en.wikipedia.org/wiki/SHA-2) according
+to [FIPS 180-4](http://dx.doi.org/10.6028/NIST.FIPS.180-4)
+(including [HMAC](https://en.wikipedia.org/wiki/HMAC) support conforming to [RFC4231](https://tools.ietf.org/html/rfc4231))
+with performance close to the fastest implementations available in other languages.
+.
+The core SHA-256 algorithm is implemented in C and is thus expected
+to be as fast as the standard [sha256sum(1) tool](https://linux.die.net/man/1/sha256sum);
+for instance, on an /Intel Core i7-3770/ at 3.40GHz this implementation can
+compute a SHA-256 hash over 230 MiB of data in under one second).
+.
+If you require a pure Haskell implementation instead, please refer to the [SHA package](https://hackage.haskell.org/package/SHA).
+.
+__NOTE__: This package has been originally a fork of @cryptohash-0.11.7@ because the @cryptohash@
+package has been deprecated and so this package continues to satisfy the need for a
+lightweight package providing the SHA256 hash algorithm without any dependencies on packages
+other than @base@ and @bytestring@.
+Consequently, this package can be used as a drop-in replacement for @cryptohash@'s
+"Crypto.Hash.SHA256" module, though with
+a [clearly smaller footprint](https://www.reddit.com/r/haskell/comments/5lxv75/psa_please_use_unique_module_names_when_uploading/dbzegx3/).
+
+}
 
 license:             BSD3
 license-file:        LICENSE
@@ -24,7 +34,6 @@ copyright:           Vincent Hanquez, Herbert Valerio Riedel
 maintainer:          Herbert Valerio Riedel <hvr@gnu.org>
 homepage:            https://github.com/hvr/cryptohash-sha256
 bug-reports:         https://github.com/hvr/cryptohash-sha256/issues
-synopsis:            Fast, pure and practical SHA-256 implementation
 category:            Data, Cryptography
 build-type:          Simple
 tested-with:         GHC == 7.4.2
@@ -41,6 +50,11 @@ source-repository head
   type:     git
   location: https://github.com/hvr/cryptohash-sha256.git
 
+flag exe
+  description: Enable building @sha256sum@ executable
+  manual:   True
+  default:  False
+
 library
   default-language:  Haskell2010
   other-extensions:  CApiFFI
@@ -56,6 +70,21 @@ library
   exposed-modules:   Crypto.Hash.SHA256
   other-modules:     Crypto.Hash.SHA256.FFI
   include-dirs:      cbits
+
+executable sha256sum
+  hs-source-dirs:    src-exe
+  main-is:           sha256sum.hs
+  ghc-options:       -Wall -threaded
+  if flag(exe)
+    default-language:  Haskell2010
+    other-extensions:  RecordWildCards
+    build-depends:     cryptohash-sha256
+                     , base
+                     , bytestring
+
+                     , base16-bytestring >= 0.1.1  && < 0.2
+  else
+    buildable:       False
 
 test-suite test-sha256
   default-language:  Haskell2010

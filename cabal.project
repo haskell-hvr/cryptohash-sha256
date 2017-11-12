@@ -3,3 +3,6 @@
 packages: .
 tests: true
 benchmarks: true
+
+package cryptohash-sha256
+  flags: +exe
