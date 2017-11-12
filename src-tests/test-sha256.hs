@@ -6,6 +6,7 @@ import           Data.ByteString        (ByteString)
 import qualified Data.ByteString        as B
 import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteString.Lazy   as BL
+import           Data.Word
 
 -- reference implementation
 import qualified Data.Digest.Pure.SHA   as REF
@@ -178,8 +179,10 @@ refImplTests :: [TestTree]
 refImplTests =
     [ testProperty "hash" prop_hash
     , testProperty "hashlazy" prop_hashlazy
+    , testProperty "hashlazyAndLength" prop_hashlazyAndLength
     , testProperty "hmac" prop_hmac
     , testProperty "hmaclazy" prop_hmaclazy
+    , testProperty "hmaclazyAndLength" prop_hmaclazyAndLength
     ]
   where
     prop_hash (RandBS bs)
@@ -188,11 +191,17 @@ refImplTests =
     prop_hashlazy (RandLBS bs)
         = ref_hashlazy bs == IUT.hashlazy bs
 
+    prop_hashlazyAndLength (RandLBS bs)
+        = ref_hashlazyAndLength bs == IUT.hashlazyAndLength bs
+
     prop_hmac (RandBS k) (RandBS bs)
         = ref_hmac k bs == IUT.hmac k bs
 
     prop_hmaclazy (RandBS k) (RandLBS bs)
         = ref_hmaclazy k bs == IUT.hmaclazy k bs
+
+    prop_hmaclazyAndLength (RandBS k) (RandLBS bs)
+        = ref_hmaclazyAndLength k bs == IUT.hmaclazyAndLength k bs
 
     ref_hash :: ByteString -> ByteString
     ref_hash = ref_hashlazy . fromStrict
@@ -200,11 +209,17 @@ refImplTests =
     ref_hashlazy :: BL.ByteString -> ByteString
     ref_hashlazy = toStrict . REF.bytestringDigest . REF.sha256
 
+    ref_hashlazyAndLength :: BL.ByteString -> (ByteString,Word64)
+    ref_hashlazyAndLength x = (ref_hashlazy x, fromIntegral (BL.length x))
+
     ref_hmac :: ByteString -> ByteString -> ByteString
     ref_hmac secret = ref_hmaclazy secret . fromStrict
 
     ref_hmaclazy :: ByteString -> BL.ByteString -> ByteString
     ref_hmaclazy secret = toStrict . REF.bytestringDigest . REF.hmacSha256 (fromStrict secret)
+
+    ref_hmaclazyAndLength :: ByteString -> BL.ByteString -> (ByteString,Word64)
+    ref_hmaclazyAndLength secret msg = (ref_hmaclazy secret msg, fromIntegral (BL.length msg))
 
     -- toStrict/fromStrict only available with bytestring-0.10 and later
     toStrict = B.concat . BL.toChunks
