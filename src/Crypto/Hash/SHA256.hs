@@ -91,8 +91,8 @@ import           Data.Bits                (xor)
 import           Data.ByteString          (ByteString)
 import qualified Data.ByteString          as B
 import           Data.ByteString.Internal (ByteString (PS), create,
-                                           mallocByteString, memcpy,
-                                           toForeignPtr)
+                                           createAndTrim, mallocByteString,
+                                           memcpy, toForeignPtr)
 import qualified Data.ByteString.Lazy     as L
 import           Data.ByteString.Unsafe   (unsafeUseAsCStringLen)
 import           Data.Word
@@ -187,7 +187,7 @@ finalizeInternalIO' ptr = create' digestSize (c_sha256_finalize_len ptr)
 {-# NOINLINE init #-}
 -- | create a new hash context
 init :: Ctx
-init = unsafeDoIO $ withCtxNew $ c_sha256_init
+init = unsafeDoIO $ withCtxNew c_sha256_init
 
 validCtx :: Ctx -> Bool
 validCtx (Ctx b) = B.length b == sizeCtx
@@ -231,7 +231,7 @@ hash d = unsafeDoIO $ unsafeUseAsCStringLen d $ \(cs, len) -> create digestSize 
 {-# NOINLINE hashlazy #-}
 -- | hash a lazy bytestring into a digest bytestring (32 bytes)
 hashlazy :: L.ByteString -> ByteString
-hashlazy l = unsafeDoIO $ withCtxNewThrow $ \ptr -> do
+hashlazy l = unsafeDoIO $ withCtxNewThrow $ \ptr ->
     c_sha256_init ptr >> mapM_ (updateInternalIO ptr) (L.toChunks l) >> finalizeInternalIO ptr
 
 {-# NOINLINE hashlazyAndLength #-}
@@ -239,7 +239,7 @@ hashlazy l = unsafeDoIO $ withCtxNewThrow $ \ptr -> do
 --
 -- @since 0.11.101.0
 hashlazyAndLength :: L.ByteString -> (ByteString,Word64)
-hashlazyAndLength l = unsafeDoIO $ withCtxNewThrow $ \ptr -> do
+hashlazyAndLength l = unsafeDoIO $ withCtxNewThrow $ \ptr ->
     c_sha256_init ptr >> mapM_ (updateInternalIO ptr) (L.toChunks l) >> finalizeInternalIO' ptr
 
 
@@ -284,18 +284,19 @@ hmaclazyAndLength :: ByteString   -- ^ secret
                   -> L.ByteString -- ^ message
                   -> (ByteString,Word64) -- ^ digest (32 bytes) and length of message
 hmaclazyAndLength secret msg =
-    (hash (B.append opad htmp), sz' - fromIntegral (L.length ipad))
+    (hash (B.append opad htmp), sz' - fromIntegral ipadLen)
   where
     (htmp, sz') = hashlazyAndLength (L.append ipad msg)
 
     opad = B.map (xor 0x5c) k'
     ipad = L.fromChunks [B.map (xor 0x36) k']
+    ipadLen = B.length k'
 
     k'  = B.append kt pad
     kt  = if B.length secret > 64 then hash secret else secret
     pad = B.replicate (64 - B.length kt) 0
 
-
+{-# NOINLINE hkdf #-}
 -- | <https://tools.ietf.org/html/rfc6234 RFC6234>-compatible
 -- HKDF-SHA-256 key derivation function.
 --
@@ -308,12 +309,14 @@ hkdf :: Int -- ^ /L/ length of output keying material in octets (at most 255*32 
 hkdf l ikm salt info
   | l == 0 = B.empty
   | 0 > l || l > 255*32 = error "hkdf: invalid L parameter"
-  | otherwise = B.take (fromIntegral l) (B.concat (go 0 B.empty))
+  | otherwise = unsafeDoIO $ createAndTrim (32*fromIntegral cnt) (go 0 B.empty)
   where
     prk = hmac salt ikm
     cnt = fromIntegral ((l+31) `div` 32) :: Word8
 
-    go :: Word8 -> ByteString -> [ByteString]
-    go !i t | i == cnt  = []
-            | otherwise = let !t' = hmac prk (B.concat [t,info,B.singleton (i+1)])
-                          in  t' : go (i+1) t'
+    go :: Word8 -> ByteString -> Ptr Word8 -> IO Int
+    go !i t !p | i == cnt  = return l
+               | otherwise = do
+                   let t' = hmaclazy prk (L.fromChunks [t,info,B.singleton (i+1)])
+                   withByteStringPtr t' $ \tptr' -> memcpy p tptr' 32
+                   go (i+1) t' (p `plusPtr` 32)
