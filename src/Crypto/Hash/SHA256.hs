@@ -244,12 +244,12 @@ hashlazyAndLength l = unsafeDoIO $ withCtxNewThrow $ \ptr -> do
 
 
 -- | Compute 32-byte <https://tools.ietf.org/html/rfc2104 RFC2104>-compatible
--- HMAC-SHA1 digest for a strict bytestring message
+-- HMAC-SHA-256 digest for a strict bytestring message
 --
 -- @since 0.11.100.0
 hmac :: ByteString -- ^ secret
      -> ByteString -- ^ message
-     -> ByteString
+     -> ByteString -- ^ digest (32 bytes)
 hmac secret msg = hash $ B.append opad (hashlazy $ L.fromChunks [ipad,msg])
   where
     opad = B.map (xor 0x5c) k'
@@ -261,12 +261,12 @@ hmac secret msg = hash $ B.append opad (hashlazy $ L.fromChunks [ipad,msg])
 
 
 -- | Compute 32-byte <https://tools.ietf.org/html/rfc2104 RFC2104>-compatible
--- HMAC-SHA1 digest for a lazy bytestring message
+-- HMAC-SHA-256 digest for a lazy bytestring message
 --
 -- @since 0.11.100.0
 hmaclazy :: ByteString   -- ^ secret
          -> L.ByteString -- ^ message
-         -> ByteString
+         -> ByteString   -- ^ digest (32 bytes)
 hmaclazy secret msg = hash $ B.append opad (hashlazy $ L.append ipad msg)
   where
     opad = B.map (xor 0x5c) k'
@@ -282,7 +282,7 @@ hmaclazy secret msg = hash $ B.append opad (hashlazy $ L.append ipad msg)
 -- @since 0.11.101.0
 hmaclazyAndLength :: ByteString   -- ^ secret
                   -> L.ByteString -- ^ message
-                  -> (ByteString,Word64)
+                  -> (ByteString,Word64) -- ^ digest (32 bytes) and length of message
 hmaclazyAndLength secret msg =
     (hash (B.append opad htmp), sz' - fromIntegral (L.length ipad))
   where
@@ -297,7 +297,7 @@ hmaclazyAndLength secret msg =
 
 
 -- | <https://tools.ietf.org/html/rfc6234 RFC6234>-compatible
--- HKDF-SHA256 key derivation function.
+-- HKDF-SHA-256 key derivation function.
 --
 -- @since 0.11.101.0
 hkdf :: Int -- ^ /L/ length of output keying material in octets (at most 255*32 bytes)
