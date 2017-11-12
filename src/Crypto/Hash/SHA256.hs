@@ -301,12 +301,12 @@ hmaclazyAndLength secret msg =
 -- HKDF-SHA-256 key derivation function.
 --
 -- @since 0.11.101.0
-hkdf :: Int -- ^ /L/ length of output keying material in octets (at most 255*32 bytes)
-     -> ByteString -- ^ /IKM/ Input keying material
+hkdf :: ByteString -- ^ /IKM/ Input keying material
      -> ByteString -- ^ /salt/ Optional salt value, a non-secret random value (can be @""@)
      -> ByteString -- ^ /info/ Optional context and application specific information (can be @""@)
+     -> Int        -- ^ /L/ length of output keying material in octets (at most 255*32 bytes)
      -> ByteString -- ^ /OKM/ Output keying material (/L/ bytes)
-hkdf l ikm salt info
+hkdf ikm salt info l
   | l == 0 = B.empty
   | 0 > l || l > 255*32 = error "hkdf: invalid L parameter"
   | otherwise = unsafeDoIO $ createAndTrim (32*fromIntegral cnt) (go 0 B.empty)

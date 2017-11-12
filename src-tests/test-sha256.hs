@@ -144,7 +144,7 @@ rfc5869Tests :: [TestTree]
 rfc5869Tests = zipWith makeTest [1::Int ..] rfc5869Vectors
   where
     makeTest i (l,ikm,salt,info,okm) = testGroup ("vec"++show i) $
-        [ testCase "hkdf" (hex okm @=? hex (IUT.hkdf l ikm salt info)) ]
+        [ testCase "hkdf" (hex okm @=? hex (IUT.hkdf ikm salt info l)) ]
 
     hex = B16.encode
 
