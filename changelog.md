@@ -1,5 +1,6 @@
 ## 0.11.101.0
 
+ - Add `hkdf` function providing HKDF-SHA256 conforming to RFC5869
  - Declare `Crypto.Hash.SHA256` module `-XTrustworthy`
  - Remove ineffective RULES
  - Convert to `CApiFFI`
@@ -18,7 +19,7 @@
 
 ## 0.11.100.0
 
- - new `hmac` and `hmaclazy` functions providing HMAC-SHA1
+ - new `hmac` and `hmaclazy` functions providing HMAC-SHA256
    computation conforming to RFC2104 and RFC4231
  - fix unaligned memory-accesses
 

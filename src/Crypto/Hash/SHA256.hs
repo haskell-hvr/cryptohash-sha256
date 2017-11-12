@@ -1,4 +1,5 @@
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE Trustworthy  #-}
 
 -- |
 -- Module      : Crypto.Hash.SHA256
@@ -77,6 +78,13 @@ module Crypto.Hash.SHA256
     , hmac     -- :: ByteString -> ByteString -> ByteString
     , hmaclazy -- :: ByteString -> L.ByteString -> ByteString
     , hmaclazyAndLength -- :: ByteString -> L.ByteString -> (ByteString,Word64)
+
+    -- ** HKDF-SHA-256
+    --
+    -- | <https://tools.ietf.org/html/rfc5869 RFC5869>-compatible
+    -- <https://en.wikipedia.org/wiki/HKDF HKDF>-SHA-256 key derivation function
+
+    , hkdf
     ) where
 
 import           Data.Bits                (xor)
@@ -275,8 +283,8 @@ hmaclazy secret msg = hash $ B.append opad (hashlazy $ L.append ipad msg)
 --
 -- @since 0.11.101.0
 hmaclazyAndLength :: ByteString   -- ^ secret
-                 -> L.ByteString -- ^ message
-                 -> (ByteString,Word64)
+                  -> L.ByteString -- ^ message
+                  -> (ByteString,Word64)
 hmaclazyAndLength secret msg =
     (hash (B.append opad htmp), sz' - fromIntegral (L.length ipad))
   where
@@ -288,3 +296,26 @@ hmaclazyAndLength secret msg =
     k'  = B.append kt pad
     kt  = if B.length secret > 64 then hash secret else secret
     pad = B.replicate (64 - B.length kt) 0
+
+
+-- | <https://tools.ietf.org/html/rfc6234 RFC6234>-compatible
+-- HKDF-SHA256 key derivation function.
+--
+-- @since 0.11.101.0
+hkdf :: Int -- ^ /L/ length of output keying material in octets (at most 255*32 bytes)
+     -> ByteString -- ^ /IKM/ Input keying material
+     -> ByteString -- ^ /salt/ Optional salt value, a non-secret random value (can be @""@)
+     -> ByteString -- ^ /info/ Optional context and application specific information (can be @""@)
+     -> ByteString -- ^ /OKM/ Output keying material (/L/ bytes)
+hkdf l ikm salt info
+  | l == 0 = B.empty
+  | 0 > l || l > 255*32 = error "hkdf: invalid L parameter"
+  | otherwise = B.take (fromIntegral l) (B.concat (go 0 B.empty))
+  where
+    prk = hmac salt ikm
+    cnt = fromIntegral ((l+31) `div` 32) :: Word8
+
+    go :: Word8 -> ByteString -> [ByteString]
+    go !i t | i == cnt  = []
+            | otherwise = let !t' = hmac prk (B.concat [t,info,B.singleton (i+1)])
+                          in  t' : go (i+1) t'
