@@ -242,7 +242,7 @@ hashlazyAndLength :: L.ByteString -> (ByteString,Word64)
 hashlazyAndLength l = unsafeDoIO $ withCtxNewThrow $ \ptr -> do
     c_sha256_init ptr >> mapM_ (updateInternalIO ptr) (L.toChunks l) >> finalizeInternalIO' ptr
 
-{-# NOINLINE hmac #-}
+
 -- | Compute 32-byte <https://tools.ietf.org/html/rfc2104 RFC2104>-compatible
 -- HMAC-SHA1 digest for a strict bytestring message
 --
@@ -260,7 +260,6 @@ hmac secret msg = hash $ B.append opad (hashlazy $ L.fromChunks [ipad,msg])
     pad = B.replicate (64 - B.length kt) 0
 
 
-{-# NOINLINE hmaclazy #-}
 -- | Compute 32-byte <https://tools.ietf.org/html/rfc2104 RFC2104>-compatible
 -- HMAC-SHA1 digest for a lazy bytestring message
 --
@@ -278,7 +277,6 @@ hmaclazy secret msg = hash $ B.append opad (hashlazy $ L.append ipad msg)
     pad = B.replicate (64 - B.length kt) 0
 
 
-{-# NOINLINE hmaclazyAndLength #-}
 -- | Variant of 'hmaclazy' which also returns length of message
 --
 -- @since 0.11.101.0
