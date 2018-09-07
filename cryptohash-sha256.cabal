@@ -1,7 +1,6 @@
 cabal-version:       1.12
 name:                cryptohash-sha256
-version:             0.11.101.0
-x-revision: 1
+version:             0.11.102.0
 
 synopsis:            Fast, pure and practical SHA-256 implementation
 description: {
@@ -114,9 +113,9 @@ test-suite test-sha256
 
                    , base16-bytestring >= 0.1.1  && < 0.2
                    , SHA               >= 1.6.4  && < 1.7
-                   , tasty             == 0.11.*
-                   , tasty-quickcheck  == 0.8.*
-                   , tasty-hunit       == 0.9.*
+                   , tasty             == 1.1.*
+                   , tasty-quickcheck  == 0.10.*
+                   , tasty-hunit       == 0.10.*
 
 benchmark bench-sha256
   default-language:  Haskell2010
@@ -127,4 +126,4 @@ benchmark bench-sha256
   build-depends:     cryptohash-sha256
                    , base
                    , bytestring
-                   , criterion        == 1.1.*
+                   , criterion        == 1.5.*

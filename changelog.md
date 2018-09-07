@@ -1,3 +1,8 @@
+## 0.11.102.0
+
+ - Add Eq instance for Ctx
+ - add start and startlazy producing Ctx
+
 ## 0.11.101.0
 
  - Add `hkdf` function providing HKDF-SHA256 conforming to RFC5869

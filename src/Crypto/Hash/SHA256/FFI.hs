@@ -38,6 +38,7 @@ import           Foreign.Ptr
 --
 -- Consequently, a SHA-256 digest as produced by 'hash', 'hashlazy', or 'finalize' is 32 bytes long.
 newtype Ctx = Ctx ByteString
+  deriving (Eq)
 
 foreign import capi unsafe "hs_sha256.h hs_cryptohash_sha256_init"
     c_sha256_init :: Ptr Ctx -> IO ()

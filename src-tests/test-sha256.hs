@@ -46,11 +46,12 @@ ansXLTest = B.filter (/= 0x20)
 
 katTests :: [TestTree]
 katTests
-  | length vectors == length answers = map makeTest (zip3 [1::Int ..] vectors answers) ++ [xltest]
+  | length vectors == length answers = map makeTest (zip3 [1::Int ..] vectors answers) ++ [xltest, xltest']
   | otherwise = error "vectors/answers length mismatch"
   where
     makeTest (i, v, r) = testGroup ("vec"++show i) $
         [ testCase "one-pass" (r @=? runTest v)
+        , testCase "one-pass'" (r @=? runTest' v)
         , testCase "inc-1"    (r @=? runTestInc 1 v)
         , testCase "inc-2"    (r @=? runTestInc 2 v)
         , testCase "inc-3"    (r @=? runTestInc 3 v)
@@ -65,14 +66,26 @@ katTests
         , testCase "lazy-7"   (r @=? runTestLazy 7 v)
         , testCase "lazy-8"   (r @=? runTestLazy 8 v)
         , testCase "lazy-16"  (r @=? runTestLazy 16 v)
+        , testCase "lazy-1'"   (r @=? runTestLazy' 1 v)
+        , testCase "lazy-2'"   (r @=? runTestLazy' 2 v)
+        , testCase "lazy-7'"   (r @=? runTestLazy' 7 v)
+        , testCase "lazy-8'"   (r @=? runTestLazy' 8 v)
+        , testCase "lazy-16'"  (r @=? runTestLazy' 16 v)
         ] ++
         [ testCase "lazy-63u"  (r @=? runTestLazyU 63 v) | B.length v > 63 ] ++
         [ testCase "lazy-65u"  (r @=? runTestLazyU 65 v) | B.length v > 65 ] ++
         [ testCase "lazy-97u"  (r @=? runTestLazyU 97 v) | B.length v > 97 ] ++
-        [ testCase "lazy-131u" (r @=? runTestLazyU 131 v) | B.length v > 131 ]
+        [ testCase "lazy-131u" (r @=? runTestLazyU 131 v) | B.length v > 131] ++
+        [ testCase "lazy-63u'"  (r @=? runTestLazyU' 63 v) | B.length v > 63 ] ++
+        [ testCase "lazy-65u'"  (r @=? runTestLazyU' 65 v) | B.length v > 65 ] ++
+        [ testCase "lazy-97u'"  (r @=? runTestLazyU' 97 v) | B.length v > 97 ] ++
+        [ testCase "lazy-131u'" (r @=? runTestLazyU' 131 v) | B.length v > 131 ]
 
     runTest :: ByteString -> ByteString
     runTest = B16.encode . IUT.hash
+
+    runTest' :: ByteString -> ByteString
+    runTest' = B16.encode . IUT.finalize . IUT.start
 
     runTestInc :: Int -> ByteString -> ByteString
     runTestInc i = B16.encode . IUT.finalize . myfoldl' IUT.update IUT.init . splitB i
@@ -80,14 +93,25 @@ katTests
     runTestLazy :: Int -> ByteString -> ByteString
     runTestLazy i = B16.encode . IUT.hashlazy . BL.fromChunks . splitB i
 
+    runTestLazy' :: Int -> ByteString -> ByteString
+    runTestLazy' i = B16.encode . IUT.finalize . IUT.startlazy . BL.fromChunks . splitB i
+
     -- force unaligned md5-blocks
     runTestLazyU :: Int -> ByteString -> ByteString
     runTestLazyU i = B16.encode . IUT.hashlazy . BL.fromChunks . map B.copy . splitB i
+
+    runTestLazyU' :: Int -> ByteString -> ByteString
+    runTestLazyU' i = B16.encode . IUT.finalize . IUT.startlazy . BL.fromChunks . map B.copy . splitB i
 
     ----
 
     xltest = testGroup "XL-vec"
         [ testCase "inc" (ansXLTest @=? (B16.encode . IUT.hashlazy) vecXL) ]
+      where
+        vecXL = BL.fromChunks (replicate 16777216 "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmno")
+
+    xltest' = testGroup "XL-vec'"
+        [ testCase "inc'" (ansXLTest @=? (B16.encode . IUT.finalize . IUT.startlazy) vecXL) ]
       where
         vecXL = BL.fromChunks (replicate 16777216 "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmno")
 
@@ -178,7 +202,9 @@ instance Show RandLBS where
 refImplTests :: [TestTree]
 refImplTests =
     [ testProperty "hash" prop_hash
+    , testProperty "start" prop_start
     , testProperty "hashlazy" prop_hashlazy
+    , testProperty "startlazy" prop_startlazy
     , testProperty "hashlazyAndLength" prop_hashlazyAndLength
     , testProperty "hmac" prop_hmac
     , testProperty "hmaclazy" prop_hmaclazy
@@ -188,8 +214,14 @@ refImplTests =
     prop_hash (RandBS bs)
         = ref_hash bs == IUT.hash bs
 
+    prop_start (RandBS bs)
+        = ref_hash bs == (IUT.finalize $ IUT.start bs)
+
     prop_hashlazy (RandLBS bs)
         = ref_hashlazy bs == IUT.hashlazy bs
+
+    prop_startlazy (RandLBS bs)
+        = ref_hashlazy bs == (IUT.finalize $ IUT.startlazy bs)
 
     prop_hashlazyAndLength (RandLBS bs)
         = ref_hashlazyAndLength bs == IUT.hashlazyAndLength bs

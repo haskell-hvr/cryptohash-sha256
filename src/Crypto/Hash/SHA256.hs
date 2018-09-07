@@ -43,6 +43,8 @@ module Crypto.Hash.SHA256
     , updates  -- :: Ctx -> [ByteString] -> Ctx
     , finalize -- :: Ctx -> ByteString
     , finalizeAndLength -- :: Ctx -> (ByteString,Word64)
+    , start     -- :: ByteString -> Ct
+    , startlazy -- :: L.ByteString -> Ctx
 
     -- * Single Pass API
     --
@@ -228,11 +230,23 @@ hash :: ByteString -> ByteString
 -- hash d = unsafeDoIO $ withCtxNewThrow $ \ptr -> c_sha256_init ptr >> updateInternalIO ptr d >> finalizeInternalIO ptr
 hash d = unsafeDoIO $ unsafeUseAsCStringLen d $ \(cs, len) -> create digestSize (c_sha256_hash (castPtr cs) (fromIntegral len))
 
+{-# NOINLINE start #-}
+-- | hash a strict bytestring into a Ctx
+start :: ByteString -> Ctx
+start d = unsafeDoIO $ withCtxNew $ \ptr -> c_sha256_init ptr >> updateInternalIO ptr d
+
+
 {-# NOINLINE hashlazy #-}
 -- | hash a lazy bytestring into a digest bytestring (32 bytes)
 hashlazy :: L.ByteString -> ByteString
 hashlazy l = unsafeDoIO $ withCtxNewThrow $ \ptr ->
     c_sha256_init ptr >> mapM_ (updateInternalIO ptr) (L.toChunks l) >> finalizeInternalIO ptr
+
+{-# NOINLINE startlazy #-}
+-- | hash a lazy bytestring into a Ctx
+startlazy :: L.ByteString -> Ctx
+startlazy l = unsafeDoIO $ withCtxNew $ \ptr ->
+    c_sha256_init ptr >> mapM_ (updateInternalIO ptr) (L.toChunks l)
 
 {-# NOINLINE hashlazyAndLength #-}
 -- | Variant of 'hashlazy' which simultaneously computes the hash and length of a lazy bytestring.
