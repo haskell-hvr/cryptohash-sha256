@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main (main) where
@@ -122,6 +123,12 @@ splitB l b
   where
     (b1, b2) = B.splitAt l b
 
+b16decode :: ByteString -> ByteString
+#if MIN_VERSION_base16_bytestring(1,0,0)
+b16decode = either error id . B16.decode
+#else
+b16decode = fst . B16.decode
+#endif
 
 rfc4231Vectors :: [(ByteString,ByteString,ByteString)]
 rfc4231Vectors = -- (secrect,msg,mac)
@@ -134,7 +141,7 @@ rfc4231Vectors = -- (secrect,msg,mac)
     , (rep 131 0xaa, "This is a test using a larger than block-size key and a larger than block-size data. The key needs to be hashed before being used by the HMAC algorithm.", x"9b09ffa71b942fcb27635fbcd5b0e944bfdc63644f0713938a7f51535c3a35e2")
     ]
   where
-    x = fst.B16.decode
+    x = b16decode
     rep n c = B.replicate n c
 
 rfc4231Tests :: [TestTree]
@@ -161,7 +168,7 @@ rfc5869Vectors = -- (l,ikm,salt,info,okm)
     , ( 42, rep 22 0x0b, "", "", x"8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8")
     ]
   where
-    x = fst.B16.decode
+    x = b16decode
     rep n c = B.replicate n c
 
 rfc5869Tests :: [TestTree]
