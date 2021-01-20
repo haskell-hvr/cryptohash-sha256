@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP          #-}
 {-# LANGUAGE Trustworthy  #-}
 
 -- |
@@ -93,7 +92,7 @@ module Crypto.Hash.SHA256
 import           Data.Bits                (xor)
 import           Data.ByteString          (ByteString)
 import qualified Data.ByteString          as B
-import           Data.ByteString.Internal (ByteString (..), create,
+import           Data.ByteString.Internal (create,
                                            createAndTrim, mallocByteString,
                                            memcpy, toForeignPtr)
 import qualified Data.ByteString.Lazy     as L
@@ -106,6 +105,7 @@ import           Foreign.Ptr
 import           Prelude                  hiding (init)
 import           System.IO.Unsafe         (unsafeDupablePerformIO)
 
+import           Compat                   (constructBS)
 import           Crypto.Hash.SHA256.FFI
 
 -- | perform IO for hashes that do allocation and ffi.
@@ -137,11 +137,7 @@ create' :: Int -> (Ptr Word8 -> IO a) -> IO (ByteString,a)
 create' l f = do
     fp <- mallocByteString l
     x <- withForeignPtr fp $ \p -> f p
-#if MIN_VERSION_bytestring(0,11,0)
-    let bs = BS fp l
-#else
-    let bs = PS fp 0 l
-#endif
+    let bs = constructBS fp l
     return $! x `seq` bs `seq` (bs,x)
 
 copyCtx :: Ptr Ctx -> Ptr Ctx -> IO ()

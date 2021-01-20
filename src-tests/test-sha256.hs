@@ -1,5 +1,5 @@
-{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Main (main) where
 
@@ -126,12 +126,14 @@ splitB l b
   where
     (b1, b2) = B.splitAt l b
 
+-- Minor hack to paper over backward incompat changes introduced in base16-bytestring-1.0
+class B16DecRes a where b16DecRes :: a -> ByteString
+instance B16DecRes (Either String ByteString) where b16DecRes = either error id
+instance B16DecRes (ByteString, ByteString)   where b16DecRes = fst
+
 b16decode :: ByteString -> ByteString
-#if MIN_VERSION_base16_bytestring(1,0,0)
-b16decode = either error id . B16.decode
-#else
-b16decode = fst . B16.decode
-#endif
+b16decode = b16DecRes . B16.decode
+
 
 rfc4231Vectors :: [(ByteString,ByteString,ByteString)]
 rfc4231Vectors = -- (secrect,msg,mac)
