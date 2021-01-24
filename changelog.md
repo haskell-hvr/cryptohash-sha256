@@ -1,7 +1,9 @@
 ## 0.11.102.0
 
  - Add Eq instance for Ctx
- - add start and startlazy producing Ctx
+ - Add start and startlazy producing Ctx
+ - Introduce new `use-cbits` cabal flag in order to
+   add support for FFI-less `cryptohash-sha256-pure` pass-thru
 
 ## 0.11.101.0
 
