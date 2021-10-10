@@ -1,3 +1,8 @@
 branches: master
 ghcup-jobs: >=9.2
 benchmarks: >=7.6
+
+constraint-set bytestring-0.11
+  constraints: bytestring ==0.11.*
+  tests: True
+  run-tests: True
