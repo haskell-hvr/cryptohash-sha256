@@ -1,6 +1,6 @@
 cabal-version:       2.0
 name:                cryptohash-sha256
-version:             0.11.102.0
+version:             0.11.102.1
 
 synopsis:            Fast, pure and practical SHA-256 implementation
 description: {
@@ -56,8 +56,9 @@ tested-with:         GHC == 7.4.2
                    , GHC == 8.2.2
                    , GHC == 8.4.4
                    , GHC == 8.6.5
-                   , GHC == 8.8.3
-                   , GHC == 8.10.1
+                   , GHC == 8.8.4
+                   , GHC == 8.10.4
+                   , GHC == 9.0.1
 
 extra-source-files:  cbits/hs_sha256.h
                      changelog.md
@@ -81,7 +82,7 @@ library
 
   ghc-options:       -Wall
 
-  build-depends:     base              >= 4.5 && < 4.15
+  build-depends:     base              >= 4.5 && < 4.16
 
   exposed-modules:   Crypto.Hash.SHA256
 
@@ -130,7 +131,7 @@ test-suite test-sha256
 
                    , base16-bytestring ^>= 0.1.1 || ^>= 1.0.0
                    , SHA               ^>= 1.6.4
-                   , tasty             ^>= 1.1
+                   , tasty             ^>= 1.4
                    , tasty-quickcheck  ^>= 0.10
                    , tasty-hunit       ^>= 0.10
 
@@ -141,8 +142,10 @@ benchmark bench-sha256
   main-is:           bench-sha256.hs
   hs-source-dirs:    src-bench
   build-depends:     cryptohash-sha256
-                   , cryptohash-sha256-pure ^>= 0.1.0
                    , SHA               ^>= 1.6.4
                    , base
-                   , bytestring
+                   , bytestring        ^>= 0.10
                    , criterion         ^>= 1.5
+
+  -- not yet public
+  -- build-depends: cryptohash-sha256-pure ^>= 0.1.0

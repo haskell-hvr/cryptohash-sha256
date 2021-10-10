@@ -1,11 +1,15 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE PackageImports #-}
 
 import           Criterion.Main
 
 import qualified "cryptohash-sha256"      Crypto.Hash.SHA256        as IUT
-import qualified "cryptohash-sha256-pure" Crypto.Hash.SHA256.Legacy as Pure
 import qualified Data.Digest.Pure.SHA                               as REF
+
+#ifdef VERSION_cryptohash_sha256_pure
+import qualified "cryptohash-sha256-pure" Crypto.Hash.SHA256.Legacy as Pure
+#endif
 
 import qualified Data.ByteString      as B
 import qualified Data.ByteString.Lazy as L
@@ -16,11 +20,13 @@ benchSize'IUT sz = bs `seq` bench msg (whnf IUT.hash bs)
     bs = B.replicate sz 0
     msg = "bs-" ++ show sz
 
+#ifdef VERSION_cryptohash_sha256_pure
 benchSize'Pure :: Int -> Benchmark
 benchSize'Pure sz = bs `seq` bench msg (whnf Pure.hash bs)
   where
     bs = B.replicate sz 0
     msg = "bs-" ++ show sz
+#endif
 
 benchSize'REF :: Int -> Benchmark
 benchSize'REF sz = bs `seq` bench msg (whnf REF.sha256 bs)
@@ -50,6 +56,8 @@ main = do
           , L.length lbs64x256  `seq` bench "lbs64x256"  (whnf IUT.hashlazy lbs64x256)
           , L.length lbs64x4096 `seq` bench "lbs64x4096" (whnf IUT.hashlazy lbs64x4096)
           ]
+
+#ifdef VERSION_cryptohash_sha256_pure
         , bgroup "cryptohash-sha256-pure"
           [ benchSize'Pure 0
           , benchSize'Pure 32
@@ -66,6 +74,7 @@ main = do
           , L.length lbs64x256  `seq` bench "lbs64x256"  (whnf Pure.hashlazy lbs64x256)
           , L.length lbs64x4096 `seq` bench "lbs64x4096" (whnf Pure.hashlazy lbs64x4096)
           ]
+#endif
         , bgroup "SHA"
           [ benchSize'REF 0
           , benchSize'REF 32
