@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
-        ghc: ['8.10','9.0','9.2','9.4','9.6']
+        ghc: ['9.2','9.4','9.6','9.8']
       fail-fast: false
     timeout-minutes:
       60
@@ -25,25 +25,21 @@ jobs:
           git config --global core.eol lf
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Haskell
         id: setup-haskell
-        uses: haskell/actions/setup@v2
+        uses: haskell-actions/setup@v2
         with:
           ghc-version: ${{ matrix.ghc }}
           cabal-version: latest
 
-      - name: Get precise GHC version
-        shell: bash
-        run: echo "GHC_VERSION=$(ghc --numeric-version)" >> "${GITHUB_ENV}"
-
       - name: Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.setup-haskell.outputs.cabal-store }}
-          key: ${{ runner.os }}-${{ env.GHC_VERSION }}-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-${{ env.GHC_VERSION }}-
+          key: ${{ runner.os }}-${{ steps.setup-haskell.outputs.ghc-version }}-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-${{ steps.setup-haskell.outputs.ghc-version }}-
 
       - name: Build
         run: cabal build all --enable-tests
