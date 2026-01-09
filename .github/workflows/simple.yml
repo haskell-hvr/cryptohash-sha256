@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
-        ghc: ['9.2','9.4','9.6','9.8','9.10','9.12']
+        ghc: ['9.2','9.10','9.12','9.14']
       fail-fast: false
     timeout-minutes:
       60
@@ -25,7 +25,7 @@ jobs:
           git config --global core.eol lf
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Haskell
         id: setup-haskell
@@ -35,7 +35,7 @@ jobs:
           cabal-version: latest
 
       - name: Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ steps.setup-haskell.outputs.cabal-store }}
           key: ${{ runner.os }}-${{ steps.setup-haskell.outputs.ghc-version }}-${{ github.sha }}
