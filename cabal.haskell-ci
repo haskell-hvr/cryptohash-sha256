@@ -1,4 +1,6 @@
 branches: master
+benchmarks: <9.14
+  -- 2026-04-11: microstache does not support GHC 9.14 yet
 
 -- constraint-set bytestring-0.12
 --   ghc: >= 8.2

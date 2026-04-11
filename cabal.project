@@ -2,7 +2,8 @@
 
 packages: .
 tests: true
-benchmarks: true
+benchmarks: false
+  -- 2026-04-11: microstache does not support GHC 9.14 yet
 
 package cryptohash-sha256
   flags: +exe
